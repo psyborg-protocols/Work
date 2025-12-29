@@ -3,488 +3,745 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Work Dynamics</title>
+    <title>Household Dynamics Suite</title>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --accent-blue: #0000cc;
+            --accent-orange: #cc4400;
+            --border-color: #e0e0e0;
+            --panel-bg: rgba(255, 255, 255, 0.96);
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #ffffff;
-            color: #000000;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
-            /* Prevent scrolling on mobile */
-            position: fixed; 
-            width: 100%;
-            height: 100%;
-        }
-
-        /* --- Minimalist Controls --- */
-        #controls {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.98);
-            border-bottom: 1px solid #e5e5e5;
-            z-index: 100;
             display: flex;
             flex-direction: column;
-            padding: 8px 12px;
-            box-sizing: border-box;
-            gap: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            height: 100vh;
         }
 
-        /* Top Row: Workers */
-        .workers-row {
+        /* --- NAVIGATION --- */
+        nav {
             display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
+            border-bottom: 1px solid var(--border-color);
+            background: #f4f4f4;
+            flex-shrink: 0;
         }
 
-        .worker-group {
+        .nav-tab {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        /* Bottom Row: Sliders & Actions */
-        .actions-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
-        }
-
-        /* Inputs */
-        select {
-            width: 100%;
-            padding: 4px 2px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
             font-size: 13px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background: #fff;
-            color: #333;
-        }
-
-        label {
-            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-
-        .status-text {
-            font-size: 10px;
             color: #888;
-            height: 12px; /* Fixed height to prevent jumps */
-            white-space: nowrap;
+            background: #f4f4f4;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab:hover {
+            color: #333;
+            background: #eee;
+        }
+
+        .nav-tab.active {
+            color: #000;
+            background: #fff;
+            border-bottom: 3px solid #000;
+        }
+
+        /* --- VIEW CONTAINERS --- */
+        .view-container {
+            flex: 1;
+            position: relative;
+            display: none; /* Hidden by default */
             overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        /* Buttons */
-        .btn-group {
+        .view-container.active {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
         }
 
+        /* --- SHARED CONTROLS STYLING --- */
+        .controls-bar {
+            padding: 10px 15px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #888;
+        }
+
+        select, button, input[type="range"] {
+            font-family: inherit;
+            font-size: 13px;
+        }
+        
+        select { padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
+        
         button {
-            padding: 4px 10px;
-            background: #f0f0f0;
+            padding: 6px 12px;
+            background: #fff;
             border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
-            color: #333;
         }
-        button:active {
-            background: #ddd;
-        }
-
-        /* Slider Group */
-        .slider-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-        }
-        input[type="range"] {
-            flex: 1;
-            height: 4px;
-            border-radius: 2px;
-            -webkit-appearance: none;
-            background: #e0e0e0;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
-            background: #666;
-            border-radius: 50%;
+        button:hover { background: #f0f0f0; }
+        button:active { background: #333; color: #fff; border-color: #333; }
+        button.primary { background: #333; color: #fff; border-color: #333; }
+        
+        .status-text {
+            font-size: 10px;
+            color: #666;
+            white-space: nowrap;
+            min-width: 80px;
         }
 
-        /* Stats Overlay (Floating on canvas) */
-        #stats-overlay {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            text-align: right;
-            pointer-events: none;
-            font-family: 'Courier New', monospace;
-            z-index: 50;
-        }
-        .stat-big { font-size: 24px; font-weight: bold; }
-        .stat-small { font-size: 12px; color: #666; }
-
+        /* --- CANVAS --- */
         canvas {
             display: block;
             width: 100%;
             height: 100%;
         }
+
+        /* --- PROJECTION SPECIFIC --- */
+        #stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 10px 15px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .stat-box { display: flex; flex-direction: column; }
+        .stat-num { font-size: 16px; font-weight: bold; font-family: monospace; }
+        
+        #loading-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            .controls-bar { gap: 10px; padding: 10px; }
+            .control-group { flex: 1; }
+            button { flex: 1; }
+            #stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
 
-    <div id="controls">
-        <!-- Row 1: The Workers -->
-        <div class="workers-row">
-            <div class="worker-group">
-                <label style="color: #0000cc;">Worker A</label>
-                <select id="w1-select">
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="nav-tab active" data-target="live">Live Simulation</div>
+        <div class="nav-tab" data-target="projection">Long Range Projection</div>
+    </nav>
+
+    <!-- === VIEW 1: LIVE SIMULATION === -->
+    <div id="view-live" class="view-container active">
+        <div class="controls-bar">
+            <div class="control-group" style="flex: 2;">
+                <label style="color: var(--accent-blue);">Worker A</label>
+                <select id="live-w1">
                     <option value="t1" selected>Orderly (Type 1)</option>
                     <option value="t2">Renewal (Type 2)</option>
                     <option value="none">None</option>
                 </select>
-                <div class="status-text" id="status-w1">...</div>
+                <div id="live-status-w1" class="status-text">...</div>
             </div>
-
-            <div class="worker-group">
-                <label style="color: #cc4400;">Worker B</label>
-                <select id="w2-select">
+            <div class="control-group" style="flex: 2;">
+                <label style="color: var(--accent-orange);">Worker B</label>
+                <select id="live-w2">
                     <option value="t1">Orderly (Type 1)</option>
                     <option value="t2" selected>Renewal (Type 2)</option>
                     <option value="none">None</option>
                 </select>
-                <div class="status-text" id="status-w2">...</div>
+                <div id="live-status-w2" class="status-text">...</div>
+            </div>
+            <div class="control-group" style="flex: 1; min-width: 80px;">
+                <label>Actions</label>
+                <div style="display: flex; gap: 5px;">
+                    <button id="live-btn-chaos" title="Add Mess">+ Mess</button>
+                    <button id="live-btn-reset" title="Reset">Reset</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Stats Overlay -->
+        <div style="position: absolute; bottom: 20px; right: 20px; text-align: right; pointer-events: none; user-select: none;">
+            <div id="live-mess-display" style="font-size: 24px; font-weight: bold; font-family: monospace;">0%</div>
+            <div id="live-time-display" style="font-size: 12px; color: #666;">Day 1 00:00</div>
+        </div>
+
+        <canvas id="live-canvas"></canvas>
+    </div>
+
+    <!-- === VIEW 2: PROJECTION === -->
+    <div id="view-projection" class="view-container">
+        <div class="controls-bar">
+            <div class="control-group">
+                <label style="color: var(--accent-blue);">Worker A</label>
+                <select id="proj-w1">
+                    <option value="t1" selected>Orderly</option>
+                    <option value="t2">Renewal</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label style="color: var(--accent-orange);">Worker B</label>
+                <select id="proj-w2">
+                    <option value="t1">Orderly</option>
+                    <option value="t2" selected>Renewal</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Duration</label>
+                <select id="proj-duration">
+                    <option value="30">30 Days</option>
+                    <option value="180">6 Months</option>
+                    <option value="365">1 Year</option>
+                    <option value="1825">5 Years</option>
+                </select>
+            </div>
+            <div class="control-group" style="justify-content: flex-end;">
+                 <label>&nbsp;</label>
+                <button id="proj-btn-run" class="primary">Run Projection</button>
             </div>
         </div>
 
-        <!-- Row 2: Controls -->
-        <div class="actions-row">
-            <div class="slider-group">
-                <label>Cost <span id="cost-val">1.0x</span></label>
-                <input type="range" id="cost-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+        <div id="stats-grid">
+            <div class="stat-box">
+                <label>Avg Mess</label>
+                <span class="stat-num" id="proj-stat-avg">-</span>
             </div>
-            <div class="btn-group">
-                <button id="btn-chaos">+ Mess</button>
-                <button id="btn-reset">Reset</button>
+            <div class="stat-box">
+                <label>Peak Mess</label>
+                <span class="stat-num" id="proj-stat-peak">-</span>
             </div>
+            <div class="stat-box">
+                <label>Crisis Events</label>
+                <span class="stat-num" id="proj-stat-crisis">-</span>
+            </div>
+            <div class="stat-box">
+                <label>Burnouts</label>
+                <span class="stat-num" id="proj-stat-burnout">-</span>
+            </div>
+        </div>
+
+        <div style="flex: 1; position: relative;">
+            <canvas id="proj-canvas"></canvas>
+            <div id="loading-overlay">Calculating...</div>
         </div>
     </div>
 
-    <!-- Floating Stats -->
-    <div id="stats-overlay">
-        <div class="stat-big" id="mess-display">0%</div>
-        <div class="stat-small" id="time-display">Day 1 00:00</div>
-    </div>
-
-    <canvas id="simCanvas"></canvas>
-
+    <!-- === JAVASCRIPT MODULES === -->
     <script>
-        // --- CONSTANTS ---
-        const TICKS_PER_DAY = 720; 
+        /* =========================================
+           MODULE 1: SHARED CORE & MATH
+           ========================================= */
+        const Core = {
+            TICKS_PER_DAY: 720, // 30 ticks per hour
 
-        // Type 1 Specs (The Orderly)
-        const SPECS_T1 = {
-            type: 't1',
-            startHour: 8,
-            endHour: 10,
-            baseWorkRate: 0.4,
-            panicMultiplier: 1.2,
-            energyCost: 0.25,
-            baseRecharge: 0.04,
-            color: '#0000cc'
-        };
-
-        // Type 2 Specs (The Renewal)
-        const SPECS_T2 = {
-            type: 't2',
-            triggerCrisis: 80,
-            triggerInspired: 98,
-            stopThreshold: 5,
-            baseWorkRate: 1.8,
-            energyCost: 0.5,
-            baseRecharge: 0.02,
-            color: '#cc4400'
-        };
-
-        // --- STATE ---
-        let state = {
-            ticks: 0,
-            mess: 10,
-            energyCostMultiplier: 1.0,
-            workers: [],
-            history: [],
-            maxHistory: 3000
-        };
-
-        const canvas = document.getElementById('simCanvas');
-        const ctx = canvas.getContext('2d');
-
-        function createWorker(typeStr) {
-            return {
-                type: typeStr,
-                energy: typeStr === 't2' ? 50 : 80, 
-                isWorking: false,
-                statusMode: 'dormant',
-                specs: typeStr === 't1' ? SPECS_T1 : (typeStr === 't2' ? SPECS_T2 : null)
-            };
-        }
-
-        // --- MATH ---
-        function getNaturalMessRate(hourFloat, isWeekend) {
-            let rate = 0.015; 
-            rate += 0.3 * Math.exp(-Math.pow(hourFloat - 8, 2) / 2); // Morning
-            rate += 0.45 * Math.exp(-Math.pow(hourFloat - 19, 2) / 4); // Evening
-            if (isWeekend) rate *= 1.4;
-            
-            // Gravity
-            if (state.mess > 50) {
-                const gravity = 1 + ((state.mess - 50) / 160);
-                rate *= gravity;
-            }
-            return Math.max(0, rate); 
-        }
-
-        function getRechargeMultiplier(messLevel) {
-            let m = 1.5 - (messLevel / 80);
-            return Math.max(0.2, m);
-        }
-
-        // --- SIMULATION ---
-        function simulationStep() {
-            state.ticks++;
-            const ticksPerHour = TICKS_PER_DAY / 24;
-            const totalHours = state.ticks / ticksPerHour;
-            const hourFloat = totalHours % 24;
-            const hourInt = Math.floor(hourFloat);
-            const minute = Math.floor((hourFloat - hourInt) * 60);
-            const dayIndex = Math.floor(totalHours / 24) + 1;
-            const isWeekend = (dayIndex % 7 === 6 || dayIndex % 7 === 0);
-
-            // Environment
-            const incomingMess = getNaturalMessRate(hourFloat, isWeekend);
-            state.mess += incomingMess;
-            if (isNaN(state.mess)) state.mess = 50; 
-            
-            const rechargeMult = getRechargeMultiplier(state.mess);
-
-            // Workers
-            state.workers.forEach(w => {
-                if (w.type === 'none') {
-                    w.isWorking = false;
-                    w.statusMode = 'dormant';
-                    return;
+            Specs: {
+                t1: {
+                    type: 't1', startHour: 8, endHour: 10, baseWorkRate: 0.4,
+                    panicMultiplier: 1.2, energyCost: 0.25, baseRecharge: 0.04, color: '#0000cc'
+                },
+                t2: {
+                    type: 't2', triggerCrisis: 80, triggerInspired: 98, stopThreshold: 5,
+                    baseWorkRate: 1.8, energyCost: 0.5, baseRecharge: 0.02, color: '#cc4400'
                 }
+            },
 
-                if (w.type === 't1') {
-                    const specs = w.specs;
-                    const isShiftTime = (hourFloat >= specs.startHour && hourFloat < specs.endHour);
-                    
-                    if (w.statusMode === 'burnout') {
-                        w.isWorking = false;
-                        w.energy += specs.baseRecharge * rechargeMult;
-                        if (w.energy > 30) w.statusMode = 'dormant';
-                    } else if (isShiftTime && w.energy > 0) {
-                        w.isWorking = true;
-                        w.statusMode = 'working';
-                        let effort = 1.0;
-                        if (state.mess > 50) effort = 1.0 + ((state.mess - 50) / 100);
-                        state.mess -= (specs.baseWorkRate * effort);
-                        w.energy -= (specs.energyCost * effort * state.energyCostMultiplier);
-                        if (w.energy <= 0) { w.energy = 0; w.statusMode = 'burnout'; }
-                    } else {
-                        w.isWorking = false;
-                        w.statusMode = 'dormant';
-                        w.energy += specs.baseRecharge * rechargeMult;
-                    }
-                }
+            createWorker: function(typeStr) {
+                return {
+                    type: typeStr,
+                    energy: typeStr === 't2' ? 50 : 80,
+                    isWorking: false,
+                    statusMode: 'dormant',
+                    specs: this.Specs[typeStr] || null
+                };
+            },
+
+            getNaturalMessRate: function(hourFloat, isWeekend, currentMess) {
+                let rate = 0.015; // Base dust
+                // Morning Spike (8am)
+                rate += 0.3 * Math.exp(-Math.pow(hourFloat - 8, 2) / 2);
+                // Evening Spike (7pm)
+                rate += 0.45 * Math.exp(-Math.pow(hourFloat - 19, 2) / 4);
                 
-                else if (w.type === 't2') {
+                if (isWeekend) rate *= 1.4;
+                
+                // Clutter Gravity (Mess begets mess)
+                if (currentMess > 50) {
+                    const gravity = 1 + ((currentMess - 50) / 160);
+                    rate *= gravity;
+                }
+                return Math.max(0, rate);
+            },
+
+            getRechargeMultiplier: function(messLevel) {
+                return Math.max(0.2, 1.5 - (messLevel / 80));
+            },
+
+            // Updates a single tick of simulation for one environment
+            simulateTick: function(stateObj, costMultiplier = 1.0) {
+                stateObj.ticks++;
+                const ticksPerHour = this.TICKS_PER_DAY / 24;
+                const totalHours = stateObj.ticks / ticksPerHour;
+                const hourFloat = totalHours % 24;
+                const dayIndex = Math.floor(totalHours / 24);
+                const isWeekend = (dayIndex % 7 === 6 || dayIndex % 7 === 0);
+
+                // 1. Environment
+                const incoming = this.getNaturalMessRate(hourFloat, isWeekend, stateObj.mess);
+                stateObj.mess += incoming;
+                if(isNaN(stateObj.mess)) stateObj.mess = 50; // Safety
+
+                const rechargeMult = this.getRechargeMultiplier(stateObj.mess);
+
+                // 2. Workers
+                stateObj.workers.forEach(w => {
+                    if (w.type === 'none') return;
+                    
                     const specs = w.specs;
-                    if (!w.isWorking) {
-                        if (state.mess > specs.triggerCrisis && w.energy > 10) {
-                            w.isWorking = true; w.statusMode = 'crisis';
-                        } else if (w.energy >= specs.triggerInspired) {
-                            w.isWorking = true; w.statusMode = 'inspired';
+
+                    if (w.type === 't1') {
+                        const isShiftTime = (hourFloat >= specs.startHour && hourFloat < specs.endHour);
+                        
+                        if (w.statusMode === 'burnout') {
+                            w.isWorking = false;
+                            w.energy += specs.baseRecharge * rechargeMult;
+                            if (w.energy > 30) w.statusMode = 'dormant';
+                        } else if (isShiftTime && w.energy > 0) {
+                            w.isWorking = true;
+                            w.statusMode = 'working';
+                            let effort = 1.0;
+                            if (stateObj.mess > 50) effort = 1.0 + ((stateObj.mess - 50) / 100);
+                            
+                            stateObj.mess -= (specs.baseWorkRate * effort);
+                            w.energy -= (specs.energyCost * effort * costMultiplier);
+                            if (w.energy <= 0) { w.energy = 0; w.statusMode = 'burnout'; }
+                        } else {
+                            w.isWorking = false;
+                            w.statusMode = 'dormant';
+                            w.energy += specs.baseRecharge * rechargeMult;
+                        }
+                    } 
+                    else if (w.type === 't2') {
+                         if (!w.isWorking) {
+                            if (stateObj.mess > specs.triggerCrisis && w.energy > 10) {
+                                w.isWorking = true; w.statusMode = 'crisis';
+                            } else if (w.energy >= specs.triggerInspired) {
+                                w.isWorking = true; w.statusMode = 'inspired';
+                            }
+                        }
+                        if (w.isWorking) {
+                            stateObj.mess -= specs.baseWorkRate;
+                            w.energy -= (specs.energyCost * costMultiplier);
+                            if (stateObj.mess <= specs.stopThreshold) { w.isWorking = false; w.statusMode = 'dormant'; }
+                            if (w.energy <= 0) { w.energy = 0; w.isWorking = false; w.statusMode = 'dormant'; }
+                        } else {
+                            w.energy += specs.baseRecharge * rechargeMult;
                         }
                     }
-                    if (w.isWorking) {
-                        state.mess -= specs.baseWorkRate;
-                        w.energy -= (specs.energyCost * state.energyCostMultiplier);
-                        if (state.mess <= specs.stopThreshold) { w.isWorking = false; w.statusMode = 'dormant'; }
-                        if (w.energy <= 0) { w.energy = 0; w.isWorking = false; w.statusMode = 'dormant'; }
-                    } else {
-                        w.energy += specs.baseRecharge * rechargeMult;
+                    if (w.energy > 100) w.energy = 100;
+                });
+
+                if (stateObj.mess < 0) stateObj.mess = 0;
+
+                return { hourFloat, dayIndex, incoming };
+            }
+        };
+
+        /* =========================================
+           MODULE 2: LIVE SIMULATION CONTROLLER
+           ========================================= */
+        const LiveSim = {
+            canvas: document.getElementById('live-canvas'),
+            ctx: document.getElementById('live-canvas').getContext('2d'),
+            active: false,
+            state: { ticks: 0, mess: 10, workers: [], history: [] },
+            
+            init: function() {
+                this.reset();
+                this.attachEvents();
+            },
+
+            reset: function() {
+                const w1 = document.getElementById('live-w1').value;
+                const w2 = document.getElementById('live-w2').value;
+                this.state = {
+                    ticks: 0,
+                    mess: 10,
+                    workers: [Core.createWorker(w1), Core.createWorker(w2)],
+                    history: []
+                };
+                // Warm up
+                for(let i=0; i<1000; i++) this.step();
+            },
+
+            updateWorker: function(idx, type) {
+                this.state.workers[idx] = Core.createWorker(type);
+            },
+
+            step: function() {
+                const res = Core.simulateTick(this.state);
+                
+                // Record history snapshot
+                this.state.history.push({
+                    mess: this.state.mess,
+                    w1: { ...this.state.workers[0] }, // Clone simple props
+                    w2: { ...this.state.workers[1] },
+                    hour: Math.floor(res.hourFloat),
+                    minute: Math.floor((res.hourFloat % 1) * 60),
+                    day: res.dayIndex + 1
+                });
+
+                if (this.state.history.length > 2000) this.state.history.shift();
+            },
+
+            startLoop: function() {
+                if(this.active) return;
+                this.active = true;
+                this.loop();
+            },
+
+            stopLoop: function() {
+                this.active = false;
+            },
+
+            loop: function() {
+                if(!this.active) return;
+                this.step();
+                this.draw();
+                this.updateUI();
+                requestAnimationFrame(() => this.loop());
+            },
+
+            draw: function() {
+                // Resize handling
+                if (this.canvas.width !== this.canvas.offsetWidth || this.canvas.height !== this.canvas.offsetHeight) {
+                    this.canvas.width = this.canvas.offsetWidth;
+                    this.canvas.height = this.canvas.offsetHeight;
+                }
+
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const data = this.state.history;
+
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(0, 0, w, h);
+
+                if (data.length < 2) return;
+
+                const graphHeight = h * 0.6;
+                const graphBottom = h * 0.85;
+                const yScale = graphHeight / 100;
+
+                // Show last N points that fit screen
+                const pointsToShow = Math.min(data.length, w); 
+                const startIndex = data.length - pointsToShow;
+
+                // 1. Threshold
+                const y80 = graphBottom - (80 * yScale);
+                ctx.beginPath();
+                ctx.strokeStyle = "#eee";
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(0, y80);
+                ctx.lineTo(w, y80);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 2. Line
+                ctx.beginPath();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "#000";
+                
+                for (let i = 0; i < pointsToShow; i++) {
+                    const idx = startIndex + i;
+                    const d = data[idx];
+                    const x = i * (w / pointsToShow);
+                    const y = graphBottom - (d.mess * yScale);
+                    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+                }
+                ctx.stroke();
+
+                // 3. Worker Overlays
+                // We draw simple rectangles over the line where workers are active
+                for (let i = 0; i < pointsToShow; i++) {
+                    const idx = startIndex + i;
+                    const d = data[idx];
+                    const x = i * (w / pointsToShow);
+                    const y = graphBottom - (d.mess * yScale);
+
+                    if (d.w1.isWorking && d.w1.specs) {
+                        ctx.fillStyle = d.w1.specs.color;
+                        ctx.fillRect(x, y - 3, 2, 6);
+                    }
+                    if (d.w2.isWorking && d.w2.specs) {
+                        ctx.fillStyle = d.w2.specs.color;
+                        ctx.fillRect(x, y - 5, 2, 6);
+                    }
+                }
+            },
+
+            updateUI: function() {
+                const curr = this.state.history[this.state.history.length-1];
+                if(!curr) return;
+                
+                document.getElementById('live-mess-display').innerText = Math.round(this.state.mess) + "%";
+                document.getElementById('live-time-display').innerText = `Day ${curr.day} ${curr.hour.toString().padStart(2,'0')}:${curr.minute.toString().padStart(2,'0')}`;
+                
+                const updateStatus = (id, worker) => {
+                    const el = document.getElementById(id);
+                    if(worker.type === 'none') { el.innerText = "Empty"; return; }
+                    let txt = worker.statusMode.toUpperCase();
+                    if(worker.isWorking) txt = "WORKING";
+                    el.innerText = `${txt} (${Math.round(worker.energy)}%)`;
+                };
+
+                updateStatus('live-status-w1', this.state.workers[0]);
+                updateStatus('live-status-w2', this.state.workers[1]);
+            },
+
+            attachEvents: function() {
+                document.getElementById('live-w1').addEventListener('change', e => this.updateWorker(0, e.target.value));
+                document.getElementById('live-w2').addEventListener('change', e => this.updateWorker(1, e.target.value));
+                document.getElementById('live-btn-chaos').addEventListener('click', () => this.state.mess += 20);
+                document.getElementById('live-btn-reset').addEventListener('click', () => this.reset());
+            }
+        };
+
+        /* =========================================
+           MODULE 3: PROJECTION CONTROLLER
+           ========================================= */
+        const Projector = {
+            canvas: document.getElementById('proj-canvas'),
+            ctx: document.getElementById('proj-canvas').getContext('2d'),
+            
+            init: function() {
+                this.attachEvents();
+                // Initial run? Maybe not, let user click.
+            },
+
+            run: function() {
+                const overlay = document.getElementById('loading-overlay');
+                overlay.style.display = 'flex';
+
+                setTimeout(() => {
+                    this.calculate();
+                    overlay.style.display = 'none';
+                }, 50);
+            },
+
+            calculate: function() {
+                const w1Type = document.getElementById('proj-w1').value;
+                const w2Type = document.getElementById('proj-w2').value;
+                const days = parseInt(document.getElementById('proj-duration').value);
+
+                const totalTicks = days * Core.TICKS_PER_DAY;
+                
+                // Temp State for Simulation
+                let pState = {
+                    ticks: 0, mess: 10,
+                    workers: [Core.createWorker(w1Type), Core.createWorker(w2Type)]
+                };
+
+                // Aggregation buckets
+                let dailyData = [];
+                let daySum=0, dayMax=0, dayMin=1000;
+                let totalMess=0, peak=0, crisis=0, burnout=0;
+                let inCrisis = false;
+
+                for(let i=0; i<totalTicks; i++) {
+                    const res = Core.simulateTick(pState); // 1.0x cost default
+                    
+                    // Stat tracking
+                    const m = pState.mess;
+                    totalMess += m;
+                    if(m > peak) peak = m;
+                    
+                    // Day agg
+                    daySum += m;
+                    if(m > dayMax) dayMax = m;
+                    if(m < dayMin) dayMin = m;
+
+                    // Event counting
+                    const w1 = pState.workers[0];
+                    const w2 = pState.workers[1];
+
+                    // T2 Crisis Latch
+                    const t2 = w2.type === 't2' ? w2 : (w1.type === 't2' ? w1 : null);
+                    if(t2) {
+                        if(t2.statusMode === 'crisis' && !inCrisis) { crisis++; inCrisis = true; }
+                        if(t2.statusMode !== 'crisis') inCrisis = false;
+                    }
+
+                    // Burnout entry check (naive)
+                    pState.workers.forEach(w => {
+                        // If energy hits 0 while working, we count it. 
+                        // Simplified: We rely on Core to set 'burnout'. We can detect transition.
+                        // For projection speed, we just count frames spent in burnout / duration roughly?
+                        // Better: Count distinct entries. 
+                        if(w.lastMode !== 'burnout' && w.statusMode === 'burnout') burnout++;
+                        w.lastMode = w.statusMode;
+                    });
+
+                    // End of Day
+                    if (pState.ticks % Core.TICKS_PER_DAY === 0) {
+                        dailyData.push({
+                            day: res.dayIndex + 1,
+                            avg: daySum / Core.TICKS_PER_DAY,
+                            max: dayMax,
+                            min: dayMin
+                        });
+                        daySum=0; dayMax=0; dayMin=1000;
                     }
                 }
 
-                if (w.energy > 100) w.energy = 100;
-            });
+                this.renderChart(dailyData, peak);
+                this.updateStats(totalMess/totalTicks, peak, crisis, burnout);
+            },
 
-            if (state.mess < 0) state.mess = 0;
-
-            return {
-                mess: state.mess,
-                w1Working: state.workers[0].isWorking,
-                w1Color: state.workers[0].specs ? state.workers[0].specs.color : '#000',
-                w2Working: state.workers[1].isWorking,
-                w2Color: state.workers[1].specs ? state.workers[1].specs.color : '#000',
-                hour: hourInt,
-                minute: minute,
-                dayIndex: dayIndex
-            };
-        }
-
-        // --- DRAWING ---
-        function updateUI() {
-            const current = state.history[state.history.length - 1];
-            if (!current) return;
-
-            document.getElementById('mess-display').innerText = `${Math.round(state.mess)}%`;
-            document.getElementById('time-display').innerText = `Day ${current.dayIndex} ${current.hour.toString().padStart(2,0)}:${current.minute.toString().padStart(2,0)}`;
-
-            const updateStatus = (id, worker) => {
-                const el = document.getElementById(id);
-                if (worker.type === 'none') { el.innerText = "Empty"; return; }
-                const e = Math.round(worker.energy);
-                let txt = `${worker.statusMode.toUpperCase()}`;
-                if(worker.isWorking) txt = "WORKING";
-                el.innerText = `${txt} (${e}%)`;
-            };
-
-            updateStatus('status-w1', state.workers[0]);
-            updateStatus('status-w2', state.workers[1]);
-        }
-
-        function draw() {
-            // Ensure canvas fits screen (important for mobile rotations)
-            if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                state.maxHistory = window.innerWidth + 200; 
-            }
-
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (state.history.length < 2) return;
-
-            // Stats overlay height protection
-            const statsHeight = 60; 
-            const controlsHeight = document.getElementById('controls').offsetHeight;
-
-            // Graph Area
-            const graphTop = controlsHeight + 20;
-            const graphBottom = canvas.height - statsHeight - 20;
-            const graphHeight = graphBottom - graphTop;
-            const yScale = graphHeight / 100;
-
-            let startIndex = 0;
-            if (state.history.length > canvas.width) {
-                startIndex = state.history.length - canvas.width;
-            }
-
-            // Threshold
-            const thresholdY = graphBottom - (80 * yScale);
-            ctx.beginPath();
-            ctx.strokeStyle = "#eee";
-            ctx.setLineDash([5, 5]);
-            ctx.moveTo(0, thresholdY);
-            ctx.lineTo(canvas.width, thresholdY);
-            ctx.stroke();
-
-            // Main Line
-            ctx.setLineDash([]);
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = "#000";
-            ctx.beginPath();
-            for (let i = startIndex; i < state.history.length; i++) {
-                const h = state.history[i];
-                const x = i - startIndex;
-                const y = graphBottom - (h.mess * yScale);
-                if (i === startIndex) ctx.moveTo(x,y);
-                else ctx.lineTo(x,y);
-            }
-            ctx.stroke();
-
-            // Worker Colors
-            for (let i = startIndex; i < state.history.length; i++) {
-                const h = state.history[i];
-                const x = i - startIndex;
-                const y = graphBottom - (h.mess * yScale);
-
-                if (h.w1Working) {
-                    ctx.fillStyle = h.w1Color; 
-                    ctx.fillRect(x, y - 3, 2, 6); 
+            renderChart: function(data, peakVal) {
+                if (this.canvas.width !== this.canvas.offsetWidth || this.canvas.height !== this.canvas.offsetHeight) {
+                    this.canvas.width = this.canvas.offsetWidth;
+                    this.canvas.height = this.canvas.offsetHeight;
                 }
-                if (h.w2Working) {
-                    ctx.fillStyle = h.w2Color;
-                    ctx.fillRect(x, y - 5, 2, 6); 
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const pad = 30;
+                
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(0,0,w,h);
+
+                const days = data.length;
+                const maxY = Math.max(100, peakVal * 1.1);
+
+                const getX = i => pad + (i/(days-1)) * (w - 2*pad);
+                const getY = v => h - pad - (v/maxY) * (h - 2*pad);
+
+                // Threshold
+                const y80 = getY(80);
+                ctx.beginPath(); ctx.strokeStyle="#eee"; ctx.setLineDash([4,4]);
+                ctx.moveTo(pad, y80); ctx.lineTo(w-pad, y80); ctx.stroke(); ctx.setLineDash([]);
+
+                // Range Shadow
+                ctx.fillStyle = "rgba(0,0,0,0.05)";
+                ctx.beginPath();
+                ctx.moveTo(getX(0), getY(data[0].min));
+                for(let i=0; i<days; i++) ctx.lineTo(getX(i), getY(data[i].max));
+                for(let i=days-1; i>=0; i--) ctx.lineTo(getX(i), getY(data[i].min));
+                ctx.fill();
+
+                // Avg Line
+                ctx.beginPath(); ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
+                for(let i=0; i<days; i++) {
+                    const x = getX(i);
+                    const y = getY(data[i].avg);
+                    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
                 }
+                ctx.stroke();
+
+                // Axis
+                ctx.fillStyle="#888"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+                ctx.fillText("Start", pad, h-10); ctx.fillText("End", w-pad, h-10);
+                ctx.textAlign="right";
+                ctx.fillText(Math.round(maxY), pad-5, pad+5);
+                ctx.fillText("0", pad-5, h-pad);
+            },
+
+            updateStats: function(avg, peak, crisis, burnout) {
+                document.getElementById('proj-stat-avg').innerText = Math.round(avg) + "%";
+                document.getElementById('proj-stat-peak').innerText = Math.round(peak) + "%";
+                document.getElementById('proj-stat-crisis').innerText = crisis;
+                document.getElementById('proj-stat-burnout').innerText = burnout;
+            },
+
+            attachEvents: function() {
+                document.getElementById('proj-btn-run').addEventListener('click', () => this.run());
             }
-        }
+        };
 
-        // --- ACTIONS ---
-        // The key fix: This function swaps the worker in-place without resetting history
-        function updateWorkerType(index, typeStr) {
-            state.workers[index] = createWorker(typeStr);
-        }
+        /* =========================================
+           APP ORCHESTRATOR
+           ========================================= */
+        const App = {
+            init: function() {
+                // Initialize modules
+                LiveSim.init();
+                Projector.init();
 
-        function resetSim() {
-            state.mess = 10;
-            state.history = [];
-            state.workers = [
-                createWorker(document.getElementById('w1-select').value),
-                createWorker(document.getElementById('w2-select').value)
-            ];
-            warmUp();
-        }
+                // Tab Switch Logic
+                const tabs = document.querySelectorAll('.nav-tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        // UI Toggle
+                        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        
+                        document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+                        const target = tab.getAttribute('data-target');
+                        document.getElementById(`view-${target}`).classList.add('active');
 
-        function warmUp() {
-            for(let i=0; i<1500; i++) state.history.push(simulationStep());
-        }
+                        // Lifecycle Management
+                        if(target === 'live') {
+                            LiveSim.startLoop();
+                        } else {
+                            LiveSim.stopLoop();
+                            // Optional: auto-run projection if empty?
+                        }
+                    });
+                });
 
-        function loop() {
-            state.history.push(simulationStep());
-            if (state.history.length > 5000) state.history.shift();
-            updateUI();
-            draw();
-            requestAnimationFrame(loop);
-        }
+                // Start Live by default
+                LiveSim.startLoop();
+            }
+        };
 
-        // Listeners
-        document.getElementById('w1-select').addEventListener('change', e => updateWorkerType(0, e.target.value));
-        document.getElementById('w2-select').addEventListener('change', e => updateWorkerType(1, e.target.value));
-        document.getElementById('btn-chaos').addEventListener('click', () => state.mess += 20);
-        document.getElementById('btn-reset').addEventListener('click', resetSim);
-        document.getElementById('cost-slider').addEventListener('input', e => {
-            state.energyCostMultiplier = parseFloat(e.target.value);
-            document.getElementById('cost-val').innerText = state.energyCostMultiplier.toFixed(1) + "x";
-        });
-
-        // Start
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        // Init workers first
-        state.workers = [createWorker('t1'), createWorker('t2')];
-        warmUp();
-        loop();
+        // Launch
+        window.onload = function() {
+            App.init();
+        };
 
     </script>
 </body>
