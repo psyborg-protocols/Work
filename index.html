@@ -66,6 +66,7 @@
             position: relative;
             display: none; /* Hidden by default */
             overflow: hidden;
+            background: #fff;
         }
 
         .view-container.active {
@@ -155,12 +156,70 @@
             display: none;
         }
 
+        /* --- ENVIRONMENT SETTINGS SPECIFIC --- */
+        #settings-scroll {
+            overflow-y: auto;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .settings-section {
+            margin-bottom: 30px;
+        }
+
+        .settings-header {
+            font-size: 14px;
+            font-weight: bold;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 15px;
+        }
+
+        .setting-label {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            color: #444;
+        }
+
+        .setting-input {
+            flex: 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-input input {
+            flex: 1;
+        }
+
+        .setting-val {
+            width: 50px;
+            text-align: right;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 12px;
+            color: #000;
+        }
+
         /* Mobile Optimization */
         @media (max-width: 600px) {
             .controls-bar { gap: 10px; padding: 10px; }
             .control-group { flex: 1; }
             button { flex: 1; }
             #stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .setting-row { flex-direction: column; align-items: stretch; gap: 5px; }
         }
     </style>
 </head>
@@ -169,7 +228,8 @@
     <!-- NAVIGATION -->
     <nav>
         <div class="nav-tab active" data-target="live">Live Simulation</div>
-        <div class="nav-tab" data-target="projection">Long Range Projection</div>
+        <div class="nav-tab" data-target="projection">Long Range</div>
+        <div class="nav-tab" data-target="settings">Environment</div>
     </nav>
 
     <!-- === VIEW 1: LIVE SIMULATION === -->
@@ -270,22 +330,106 @@
         </div>
     </div>
 
+    <!-- === VIEW 3: SETTINGS === -->
+    <div id="view-settings" class="view-container">
+        <div id="settings-scroll">
+            
+            <div class="settings-section">
+                <div class="settings-header">Mess Generation</div>
+                
+                <div class="setting-row">
+                    <div class="setting-label">Base Dust Rate (Constant)</div>
+                    <div class="setting-input">
+                        <input type="range" id="conf-base-dust" min="0" max="0.05" step="0.001">
+                        <div class="setting-val" id="val-base-dust"></div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">Morning Spike Intensity (8am)</div>
+                    <div class="setting-input">
+                        <input type="range" id="conf-morning-spike" min="0" max="1.0" step="0.05">
+                        <div class="setting-val" id="val-morning-spike"></div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">Evening Spike Intensity (7pm)</div>
+                    <div class="setting-input">
+                        <input type="range" id="conf-evening-spike" min="0" max="1.0" step="0.05">
+                        <div class="setting-val" id="val-evening-spike"></div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">Weekend Multiplier</div>
+                    <div class="setting-input">
+                        <input type="range" id="conf-weekend-mult" min="1.0" max="2.5" step="0.1">
+                        <div class="setting-val" id="val-weekend-mult"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-header">Energy Physics</div>
+                <div class="setting-row">
+                    <div class="setting-label">Recharge Rate (Clean House)</div>
+                    <div class="setting-input">
+                        <input type="range" id="conf-recharge-clean" min="1.0" max="3.0" step="0.1">
+                        <div class="setting-val" id="val-recharge-clean"></div>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">Recharge Rate (Crisis House)</div>
+                    <div class="setting-input">
+                        <input type="range" id="conf-recharge-dirty" min="0.1" max="1.0" step="0.1">
+                        <div class="setting-val" id="val-recharge-dirty"></div>
+                    </div>
+                </div>
+            </div>
+
+             <div class="settings-section">
+                <div class="settings-header">Defaults</div>
+                <button id="btn-restore-defaults" style="width:100%">Restore Default Values</button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- === JAVASCRIPT MODULES === -->
     <script>
         /* =========================================
            MODULE 1: SHARED CORE & MATH
            ========================================= */
         const Core = {
-            TICKS_PER_DAY: 720, // 30 ticks per hour
-
-            Specs: {
-                t1: {
-                    type: 't1', startHour: 8, endHour: 10, baseWorkRate: 0.4,
-                    panicMultiplier: 1.2, energyCost: 0.25, baseRecharge: 0.04, color: '#0000cc'
+            // --- CENTRAL CONTROL CONFIGURATION ---
+            Config: {
+                TICKS_PER_DAY: 720, // 30 ticks per hour
+                
+                Environment: {
+                    BASE_DUST: 0.014,       
+                    MORNING_SPIKE: 0.3,     
+                    EVENING_SPIKE: 0.45,    
+                    RECHARGE_CLEAN: 1.5,    
+                    RECHARGE_DIRTY: 0.3,    
+                    WEEKEND_MULT: 1.4       
                 },
-                t2: {
-                    type: 't2', triggerCrisis: 80, triggerInspired: 98, stopThreshold: 5,
-                    baseWorkRate: 1.8, energyCost: 0.5, baseRecharge: 0.02, color: '#cc4400'
+                // Backup for reset
+                Defaults: {
+                    BASE_DUST: 0.014, MORNING_SPIKE: 0.3, EVENING_SPIKE: 0.45,
+                    RECHARGE_CLEAN: 1.5, RECHARGE_DIRTY: 0.3, WEEKEND_MULT: 1.4
+                },
+
+                Workers: {
+                    t1: {
+                        type: 't1', startHour: 8, endHour: 10, baseWorkRate: 0.4,
+                        panicMultiplier: 1.2, energyCost: 0.25, baseRecharge: 0.04, color: '#0000cc'
+                    },
+                    t2: {
+                        type: 't2', triggerCrisis: 80, triggerInspired: 98, stopThreshold: 5,
+                        baseWorkRate: 0.4, energyCost: 0.25, baseRecharge: 0.02, color: '#cc4400'
+                    }
                 }
             },
 
@@ -295,18 +439,20 @@
                     energy: typeStr === 't2' ? 50 : 80,
                     isWorking: false,
                     statusMode: 'dormant',
-                    specs: this.Specs[typeStr] || null
+                    specs: this.Config.Workers[typeStr] || null
                 };
             },
 
             getNaturalMessRate: function(hourFloat, isWeekend, currentMess) {
-                let rate = 0.015; // Base dust
-                // Morning Spike (8am)
-                rate += 0.3 * Math.exp(-Math.pow(hourFloat - 8, 2) / 2);
-                // Evening Spike (7pm)
-                rate += 0.45 * Math.exp(-Math.pow(hourFloat - 19, 2) / 4);
+                const C = this.Config.Environment;
                 
-                if (isWeekend) rate *= 1.4;
+                let rate = C.BASE_DUST; 
+                // Morning Spike (8am)
+                rate += C.MORNING_SPIKE * Math.exp(-Math.pow(hourFloat - 8, 2) / 2);
+                // Evening Spike (7pm)
+                rate += C.EVENING_SPIKE * Math.exp(-Math.pow(hourFloat - 19, 2) / 4);
+                
+                if (isWeekend) rate *= C.WEEKEND_MULT;
                 
                 // Clutter Gravity (Mess begets mess)
                 if (currentMess > 50) {
@@ -317,13 +463,13 @@
             },
 
             getRechargeMultiplier: function(messLevel) {
-                return Math.max(0.2, 1.5 - (messLevel / 80));
+                const C = this.Config.Environment;
+                return Math.max(C.RECHARGE_DIRTY, C.RECHARGE_CLEAN - (messLevel / 80));
             },
 
-            // Updates a single tick of simulation for one environment
             simulateTick: function(stateObj, costMultiplier = 1.0) {
                 stateObj.ticks++;
-                const ticksPerHour = this.TICKS_PER_DAY / 24;
+                const ticksPerHour = this.Config.TICKS_PER_DAY / 24;
                 const totalHours = stateObj.ticks / ticksPerHour;
                 const hourFloat = totalHours % 24;
                 const dayIndex = Math.floor(totalHours / 24);
@@ -332,7 +478,7 @@
                 // 1. Environment
                 const incoming = this.getNaturalMessRate(hourFloat, isWeekend, stateObj.mess);
                 stateObj.mess += incoming;
-                if(isNaN(stateObj.mess)) stateObj.mess = 50; // Safety
+                if(isNaN(stateObj.mess)) stateObj.mess = 50; 
 
                 const rechargeMult = this.getRechargeMultiplier(stateObj.mess);
 
@@ -413,7 +559,6 @@
                     workers: [Core.createWorker(w1), Core.createWorker(w2)],
                     history: []
                 };
-                // Warm up
                 for(let i=0; i<1000; i++) this.step();
             },
 
@@ -423,17 +568,14 @@
 
             step: function() {
                 const res = Core.simulateTick(this.state);
-                
-                // Record history snapshot
                 this.state.history.push({
                     mess: this.state.mess,
-                    w1: { ...this.state.workers[0] }, // Clone simple props
+                    w1: { ...this.state.workers[0] }, 
                     w2: { ...this.state.workers[1] },
                     hour: Math.floor(res.hourFloat),
                     minute: Math.floor((res.hourFloat % 1) * 60),
                     day: res.dayIndex + 1
                 });
-
                 if (this.state.history.length > 2000) this.state.history.shift();
             },
 
@@ -456,7 +598,6 @@
             },
 
             draw: function() {
-                // Resize handling
                 if (this.canvas.width !== this.canvas.offsetWidth || this.canvas.height !== this.canvas.offsetHeight) {
                     this.canvas.width = this.canvas.offsetWidth;
                     this.canvas.height = this.canvas.offsetHeight;
@@ -476,11 +617,9 @@
                 const graphBottom = h * 0.85;
                 const yScale = graphHeight / 100;
 
-                // Show last N points that fit screen
                 const pointsToShow = Math.min(data.length, w); 
                 const startIndex = data.length - pointsToShow;
 
-                // 1. Threshold
                 const y80 = graphBottom - (80 * yScale);
                 ctx.beginPath();
                 ctx.strokeStyle = "#eee";
@@ -490,7 +629,6 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // 2. Line
                 ctx.beginPath();
                 ctx.lineWidth = 1.5;
                 ctx.strokeStyle = "#000";
@@ -504,8 +642,6 @@
                 }
                 ctx.stroke();
 
-                // 3. Worker Overlays
-                // We draw simple rectangles over the line where workers are active
                 for (let i = 0; i < pointsToShow; i++) {
                     const idx = startIndex + i;
                     const d = data[idx];
@@ -559,7 +695,6 @@
             
             init: function() {
                 this.attachEvents();
-                // Initial run? Maybe not, let user click.
             },
 
             run: function() {
@@ -577,59 +712,47 @@
                 const w2Type = document.getElementById('proj-w2').value;
                 const days = parseInt(document.getElementById('proj-duration').value);
 
-                const totalTicks = days * Core.TICKS_PER_DAY;
+                const totalTicks = days * Core.Config.TICKS_PER_DAY;
                 
-                // Temp State for Simulation
                 let pState = {
                     ticks: 0, mess: 10,
                     workers: [Core.createWorker(w1Type), Core.createWorker(w2Type)]
                 };
 
-                // Aggregation buckets
                 let dailyData = [];
                 let daySum=0, dayMax=0, dayMin=1000;
                 let totalMess=0, peak=0, crisis=0, burnout=0;
                 let inCrisis = false;
 
                 for(let i=0; i<totalTicks; i++) {
-                    const res = Core.simulateTick(pState); // 1.0x cost default
+                    const res = Core.simulateTick(pState); 
                     
-                    // Stat tracking
                     const m = pState.mess;
                     totalMess += m;
                     if(m > peak) peak = m;
                     
-                    // Day agg
                     daySum += m;
                     if(m > dayMax) dayMax = m;
                     if(m < dayMin) dayMin = m;
 
-                    // Event counting
                     const w1 = pState.workers[0];
                     const w2 = pState.workers[1];
 
-                    // T2 Crisis Latch
                     const t2 = w2.type === 't2' ? w2 : (w1.type === 't2' ? w1 : null);
                     if(t2) {
                         if(t2.statusMode === 'crisis' && !inCrisis) { crisis++; inCrisis = true; }
                         if(t2.statusMode !== 'crisis') inCrisis = false;
                     }
 
-                    // Burnout entry check (naive)
                     pState.workers.forEach(w => {
-                        // If energy hits 0 while working, we count it. 
-                        // Simplified: We rely on Core to set 'burnout'. We can detect transition.
-                        // For projection speed, we just count frames spent in burnout / duration roughly?
-                        // Better: Count distinct entries. 
                         if(w.lastMode !== 'burnout' && w.statusMode === 'burnout') burnout++;
                         w.lastMode = w.statusMode;
                     });
 
-                    // End of Day
-                    if (pState.ticks % Core.TICKS_PER_DAY === 0) {
+                    if (pState.ticks % Core.Config.TICKS_PER_DAY === 0) {
                         dailyData.push({
                             day: res.dayIndex + 1,
-                            avg: daySum / Core.TICKS_PER_DAY,
+                            avg: daySum / Core.Config.TICKS_PER_DAY,
                             max: dayMax,
                             min: dayMin
                         });
@@ -660,12 +783,10 @@
                 const getX = i => pad + (i/(days-1)) * (w - 2*pad);
                 const getY = v => h - pad - (v/maxY) * (h - 2*pad);
 
-                // Threshold
                 const y80 = getY(80);
                 ctx.beginPath(); ctx.strokeStyle="#eee"; ctx.setLineDash([4,4]);
                 ctx.moveTo(pad, y80); ctx.lineTo(w-pad, y80); ctx.stroke(); ctx.setLineDash([]);
 
-                // Range Shadow
                 ctx.fillStyle = "rgba(0,0,0,0.05)";
                 ctx.beginPath();
                 ctx.moveTo(getX(0), getY(data[0].min));
@@ -673,7 +794,6 @@
                 for(let i=days-1; i>=0; i--) ctx.lineTo(getX(i), getY(data[i].min));
                 ctx.fill();
 
-                // Avg Line
                 ctx.beginPath(); ctx.strokeStyle="#000"; ctx.lineWidth=1.5;
                 for(let i=0; i<days; i++) {
                     const x = getX(i);
@@ -682,7 +802,6 @@
                 }
                 ctx.stroke();
 
-                // Axis
                 ctx.fillStyle="#888"; ctx.font="10px sans-serif"; ctx.textAlign="center";
                 ctx.fillText("Start", pad, h-10); ctx.fillText("End", w-pad, h-10);
                 ctx.textAlign="right";
@@ -703,19 +822,68 @@
         };
 
         /* =========================================
+           MODULE 4: SETTINGS CONTROLLER
+           ========================================= */
+        const Settings = {
+            init: function() {
+                this.bindInput('conf-base-dust', 'BASE_DUST', 'val-base-dust');
+                this.bindInput('conf-morning-spike', 'MORNING_SPIKE', 'val-morning-spike');
+                this.bindInput('conf-evening-spike', 'EVENING_SPIKE', 'val-evening-spike');
+                this.bindInput('conf-weekend-mult', 'WEEKEND_MULT', 'val-weekend-mult');
+                this.bindInput('conf-recharge-clean', 'RECHARGE_CLEAN', 'val-recharge-clean');
+                this.bindInput('conf-recharge-dirty', 'RECHARGE_DIRTY', 'val-recharge-dirty');
+                
+                this.resetToDefaults(); // Initial populate
+
+                document.getElementById('btn-restore-defaults').addEventListener('click', () => this.resetToDefaults());
+            },
+
+            bindInput: function(elemId, configKey, displayId) {
+                const el = document.getElementById(elemId);
+                const disp = document.getElementById(displayId);
+                
+                el.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    Core.Config.Environment[configKey] = val;
+                    disp.innerText = val.toFixed(3);
+                });
+            },
+
+            resetToDefaults: function() {
+                const D = Core.Config.Defaults;
+                const E = Core.Config.Environment;
+                
+                // Copy defaults back
+                Object.assign(E, D);
+                
+                // Update UI
+                this.setVal('conf-base-dust', D.BASE_DUST, 'val-base-dust');
+                this.setVal('conf-morning-spike', D.MORNING_SPIKE, 'val-morning-spike');
+                this.setVal('conf-evening-spike', D.EVENING_SPIKE, 'val-evening-spike');
+                this.setVal('conf-weekend-mult', D.WEEKEND_MULT, 'val-weekend-mult');
+                this.setVal('conf-recharge-clean', D.RECHARGE_CLEAN, 'val-recharge-clean');
+                this.setVal('conf-recharge-dirty', D.RECHARGE_DIRTY, 'val-recharge-dirty');
+            },
+
+            setVal: function(inputId, val, displayId) {
+                const el = document.getElementById(inputId);
+                el.value = val;
+                document.getElementById(displayId).innerText = val.toFixed(3);
+            }
+        };
+
+        /* =========================================
            APP ORCHESTRATOR
            ========================================= */
         const App = {
             init: function() {
-                // Initialize modules
+                Settings.init(); // Init settings first so config is ready
                 LiveSim.init();
                 Projector.init();
 
-                // Tab Switch Logic
                 const tabs = document.querySelectorAll('.nav-tab');
                 tabs.forEach(tab => {
                     tab.addEventListener('click', () => {
-                        // UI Toggle
                         document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         
@@ -723,22 +891,18 @@
                         const target = tab.getAttribute('data-target');
                         document.getElementById(`view-${target}`).classList.add('active');
 
-                        // Lifecycle Management
                         if(target === 'live') {
                             LiveSim.startLoop();
                         } else {
                             LiveSim.stopLoop();
-                            // Optional: auto-run projection if empty?
                         }
                     });
                 });
 
-                // Start Live by default
                 LiveSim.startLoop();
             }
         };
 
-        // Launch
         window.onload = function() {
             App.init();
         };
