@@ -12,209 +12,264 @@
             color: #000000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
+            /* Prevent scrolling on mobile */
+            position: fixed; 
+            width: 100%;
+            height: 100%;
         }
 
-        /* Minimalist Controls Container */
+        /* --- Minimalist Controls --- */
         #controls {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            align-items: center;
-            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom: 1px solid #e5e5e5;
             z-index: 100;
-            font-size: 14px;
-        }
-
-        .control-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            padding: 8px 12px;
+            box-sizing: border-box;
+            gap: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
 
-        .control-row {
+        /* Top Row: Workers */
+        .workers-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .worker-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* Bottom Row: Sliders & Actions */
+        .actions-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+        }
+
+        /* Inputs */
+        select {
+            width: 100%;
+            padding: 4px 2px;
+            font-size: 13px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            color: #333;
         }
 
         label {
-            cursor: pointer;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        /* Native Inputs styled simply */
-        button {
-            padding: 6px 12px;
-            background: #fff;
-            border: 1px solid #000;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            transition: background 0.1s;
+        .status-text {
+            font-size: 10px;
+            color: #888;
+            height: 12px; /* Fixed height to prevent jumps */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        button:hover {
-            background: #eee;
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 4px 10px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #333;
         }
         button:active {
-            background: #000;
-            color: #fff;
+            background: #ddd;
         }
 
+        /* Slider Group */
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
         input[type="range"] {
-            width: 100px;
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            -webkit-appearance: none;
+            background: #e0e0e0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #666;
+            border-radius: 50%;
         }
 
-        /* Stats Display */
-        #stats {
-            margin-left: auto;
+        /* Stats Overlay (Floating on canvas) */
+        #stats-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
             text-align: right;
-            font-family: 'Courier New', Courier, monospace;
-            line-height: 1.2;
+            pointer-events: none;
+            font-family: 'Courier New', monospace;
+            z-index: 50;
         }
+        .stat-big { font-size: 24px; font-weight: bold; }
+        .stat-small { font-size: 12px; color: #666; }
 
         canvas {
             display: block;
             width: 100%;
-            height: 100vh;
+            height: 100%;
         }
     </style>
 </head>
 <body>
 
-    <!-- Standard HTML Controls -->
     <div id="controls">
-        <!-- Worker 1 -->
-        <div class="control-group">
-            <div class="control-row">
-                <input type="checkbox" id="toggle-t1" checked>
-                <label for="toggle-t1" style="color: #0000cc;">
-                    ■ The Orderly
-                </label>
+        <!-- Row 1: The Workers -->
+        <div class="workers-row">
+            <div class="worker-group">
+                <label style="color: #0000cc;">Worker A</label>
+                <select id="w1-select">
+                    <option value="t1" selected>Orderly (Type 1)</option>
+                    <option value="t2">Renewal (Type 2)</option>
+                    <option value="none">None</option>
+                </select>
+                <div class="status-text" id="status-w1">...</div>
             </div>
-            <div style="font-size: 11px; color: #666;" id="status-t1">Waiting...</div>
-        </div>
 
-        <!-- Worker 2 -->
-        <div class="control-group">
-            <div class="control-row">
-                <input type="checkbox" id="toggle-t2" checked>
-                <label for="toggle-t2" style="color: #cc4400;">
-                    ■ The Renewal
-                </label>
+            <div class="worker-group">
+                <label style="color: #cc4400;">Worker B</label>
+                <select id="w2-select">
+                    <option value="t1">Orderly (Type 1)</option>
+                    <option value="t2" selected>Renewal (Type 2)</option>
+                    <option value="none">None</option>
+                </select>
+                <div class="status-text" id="status-w2">...</div>
             </div>
-            <div style="font-size: 11px; color: #666;" id="status-t2">Waiting...</div>
         </div>
 
-        <!-- Cost Slider -->
-        <div class="control-group">
-            <label for="cost-slider">Energy Cost: <span id="cost-val">1.0x</span></label>
-            <input type="range" id="cost-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+        <!-- Row 2: Controls -->
+        <div class="actions-row">
+            <div class="slider-group">
+                <label>Cost <span id="cost-val">1.0x</span></label>
+                <input type="range" id="cost-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+            </div>
+            <div class="btn-group">
+                <button id="btn-chaos">+ Mess</button>
+                <button id="btn-reset">Reset</button>
+            </div>
         </div>
+    </div>
 
-        <!-- Actions -->
-        <div class="control-group" style="flex-direction: row;">
-            <button id="btn-chaos">+ Mess</button>
-            <button id="btn-reset">Reset</button>
-        </div>
-
-        <!-- Stats -->
-        <div id="stats">
-            <div id="time-display">00:00</div>
-            <div id="mess-display">Mess: 0%</div>
-        </div>
+    <!-- Floating Stats -->
+    <div id="stats-overlay">
+        <div class="stat-big" id="mess-display">0%</div>
+        <div class="stat-small" id="time-display">Day 1 00:00</div>
     </div>
 
     <canvas id="simCanvas"></canvas>
 
     <script>
-        // --- Configuration ---
-        const CONFIG = {
-            ticksPerDay: 720, // High resolution for smoothness (30 ticks/hour)
-            
-            // Type 1 (Orderly)
-            t1StartHour: 8,
-            t1EndHour: 10,
-            t1BaseWorkRate: 0.4,    // Slower, smoother work
-            t1PanicMultiplier: 1.2,
-            t1EnergyCost: 0.25,
-            t1BaseRecharge: 0.04,
-            
-            // Type 2 (Renewal)
-            t2TriggerCrisis: 80,
-            t2TriggerInspired: 98,
-            t2StopThreshold: 5,
-            t2BaseWorkRate: 1.8,    // Smoother burst
-            t2EnergyCost: 0.5,
-            t2BaseRecharge: 0.02,
+        // --- CONSTANTS ---
+        const TICKS_PER_DAY = 720; 
+
+        // Type 1 Specs (The Orderly)
+        const SPECS_T1 = {
+            type: 't1',
+            startHour: 8,
+            endHour: 10,
+            baseWorkRate: 0.4,
+            panicMultiplier: 1.2,
+            energyCost: 0.25,
+            baseRecharge: 0.04,
+            color: '#0000cc'
         };
 
+        // Type 2 Specs (The Renewal)
+        const SPECS_T2 = {
+            type: 't2',
+            triggerCrisis: 80,
+            triggerInspired: 98,
+            stopThreshold: 5,
+            baseWorkRate: 1.8,
+            energyCost: 0.5,
+            baseRecharge: 0.02,
+            color: '#cc4400'
+        };
+
+        // --- STATE ---
         let state = {
             ticks: 0,
             mess: 10,
             energyCostMultiplier: 1.0,
-            
-            t1Active: true,
-            t1Energy: 80,
-            t1IsWorking: false,
-            t1Burnout: false, 
-
-            t2Active: true,
-            t2Energy: 50,
-            t2IsWorking: false,
-            t2Mode: 'dormant', 
-
+            workers: [],
             history: [],
-            maxHistory: 3000 // More history points for smoother curves
+            maxHistory: 3000
         };
 
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
 
-        // --- SMOOTH Mess Logic (Gaussian Curves) ---
+        function createWorker(typeStr) {
+            return {
+                type: typeStr,
+                energy: typeStr === 't2' ? 50 : 80, 
+                isWorking: false,
+                statusMode: 'dormant',
+                specs: typeStr === 't1' ? SPECS_T1 : (typeStr === 't2' ? SPECS_T2 : null)
+            };
+        }
+
+        // --- MATH ---
         function getNaturalMessRate(hourFloat, isWeekend) {
-            // 1. Base constant accumulation (Dust)
             let rate = 0.015; 
-
-            // 2. Morning Spike (Gaussian curve centered at 8.0)
-            // Height 0.3, Width 1.5
-            rate += 0.3 * Math.exp(-Math.pow(hourFloat - 8, 2) / 2);
-
-            // 3. Evening Spike (Gaussian curve centered at 19.0 / 7pm)
-            // Height 0.45, Width 2.5 (Dinner is longer)
-            rate += 0.45 * Math.exp(-Math.pow(hourFloat - 19, 2) / 4);
-
-            // 4. Weekend Multiplier
+            rate += 0.3 * Math.exp(-Math.pow(hourFloat - 8, 2) / 2); // Morning
+            rate += 0.45 * Math.exp(-Math.pow(hourFloat - 19, 2) / 4); // Evening
             if (isWeekend) rate *= 1.4;
-
-            // 5. Clutter Gravity (Smooth multiplier)
+            
+            // Gravity
             if (state.mess > 50) {
-                // Smoothly scale up from 1.0x at 50 mess to 1.3x at 100 mess
                 const gravity = 1 + ((state.mess - 50) / 160);
                 rate *= gravity;
             }
-
-            return Math.max(0, rate); // Never negative mess
+            return Math.max(0, rate); 
         }
 
         function getRechargeMultiplier(messLevel) {
-            // Smooth linear interpolation from 1.5x (clean) to 0.2x (filthy)
             let m = 1.5 - (messLevel / 80);
             return Math.max(0.2, m);
         }
 
+        // --- SIMULATION ---
         function simulationStep() {
             state.ticks++;
-            const ticksPerHour = CONFIG.ticksPerDay / 24;
+            const ticksPerHour = TICKS_PER_DAY / 24;
             const totalHours = state.ticks / ticksPerHour;
             const hourFloat = totalHours % 24;
             const hourInt = Math.floor(hourFloat);
@@ -222,127 +277,122 @@
             const dayIndex = Math.floor(totalHours / 24) + 1;
             const isWeekend = (dayIndex % 7 === 6 || dayIndex % 7 === 0);
 
-            // --- 1. Environment ---
-            // Pass float hour for smooth curve calculation
+            // Environment
             const incomingMess = getNaturalMessRate(hourFloat, isWeekend);
             state.mess += incomingMess;
-
-            // Safety Clamp
             if (isNaN(state.mess)) state.mess = 50; 
-
+            
             const rechargeMult = getRechargeMultiplier(state.mess);
 
-            // --- 2. Type 1 (Orderly) ---
-            if (state.t1Active) {
-                // Shift is 8:00 to 10:00
-                const isShiftTime = (hourFloat >= CONFIG.t1StartHour && hourFloat < CONFIG.t1EndHour);
-                
-                if (state.t1Burnout) {
-                    state.t1IsWorking = false;
-                    state.t1Energy += CONFIG.t1BaseRecharge * rechargeMult;
-                    if (state.t1Energy > 30) state.t1Burnout = false;
-                } else if (isShiftTime && state.t1Energy > 0) {
-                    state.t1IsWorking = true;
-                    // Panic creates a smooth curve of effort
-                    let effort = 1.0;
-                    if (state.mess > 50) effort = 1.0 + ((state.mess - 50) / 100); // Max 1.5x
+            // Workers
+            state.workers.forEach(w => {
+                if (w.type === 'none') {
+                    w.isWorking = false;
+                    w.statusMode = 'dormant';
+                    return;
+                }
+
+                if (w.type === 't1') {
+                    const specs = w.specs;
+                    const isShiftTime = (hourFloat >= specs.startHour && hourFloat < specs.endHour);
                     
-                    state.mess -= (CONFIG.t1BaseWorkRate * effort);
-                    state.t1Energy -= (CONFIG.t1EnergyCost * effort * state.energyCostMultiplier);
-
-                    if (state.t1Energy <= 0) {
-                        state.t1Energy = 0;
-                        state.t1Burnout = true; 
-                    }
-                } else {
-                    state.t1IsWorking = false;
-                    state.t1Energy += CONFIG.t1BaseRecharge * rechargeMult;
-                }
-            } else {
-                state.t1IsWorking = false;
-            }
-            if (state.t1Energy > 100) state.t1Energy = 100;
-
-            // --- 3. Type 2 (Renewal) ---
-            if (state.t2Active) {
-                if (!state.t2IsWorking) {
-                    if (state.mess > CONFIG.t2TriggerCrisis && state.t2Energy > 10) {
-                        state.t2IsWorking = true;
-                        state.t2Mode = 'crisis';
-                    } else if (state.t2Energy >= CONFIG.t2TriggerInspired) {
-                        state.t2IsWorking = true;
-                        state.t2Mode = 'inspired';
+                    if (w.statusMode === 'burnout') {
+                        w.isWorking = false;
+                        w.energy += specs.baseRecharge * rechargeMult;
+                        if (w.energy > 30) w.statusMode = 'dormant';
+                    } else if (isShiftTime && w.energy > 0) {
+                        w.isWorking = true;
+                        w.statusMode = 'working';
+                        let effort = 1.0;
+                        if (state.mess > 50) effort = 1.0 + ((state.mess - 50) / 100);
+                        state.mess -= (specs.baseWorkRate * effort);
+                        w.energy -= (specs.energyCost * effort * state.energyCostMultiplier);
+                        if (w.energy <= 0) { w.energy = 0; w.statusMode = 'burnout'; }
+                    } else {
+                        w.isWorking = false;
+                        w.statusMode = 'dormant';
+                        w.energy += specs.baseRecharge * rechargeMult;
                     }
                 }
-
-                if (state.t2IsWorking) {
-                    state.mess -= CONFIG.t2BaseWorkRate;
-                    state.t2Energy -= (CONFIG.t2EnergyCost * state.energyCostMultiplier);
-
-                    if (state.mess <= CONFIG.t2StopThreshold) {
-                        state.t2IsWorking = false;
-                        state.t2Mode = 'dormant';
+                
+                else if (w.type === 't2') {
+                    const specs = w.specs;
+                    if (!w.isWorking) {
+                        if (state.mess > specs.triggerCrisis && w.energy > 10) {
+                            w.isWorking = true; w.statusMode = 'crisis';
+                        } else if (w.energy >= specs.triggerInspired) {
+                            w.isWorking = true; w.statusMode = 'inspired';
+                        }
                     }
-                    if (state.t2Energy <= 0) {
-                        state.t2Energy = 0;
-                        state.t2IsWorking = false;
-                        state.t2Mode = 'dormant';
+                    if (w.isWorking) {
+                        state.mess -= specs.baseWorkRate;
+                        w.energy -= (specs.energyCost * state.energyCostMultiplier);
+                        if (state.mess <= specs.stopThreshold) { w.isWorking = false; w.statusMode = 'dormant'; }
+                        if (w.energy <= 0) { w.energy = 0; w.isWorking = false; w.statusMode = 'dormant'; }
+                    } else {
+                        w.energy += specs.baseRecharge * rechargeMult;
                     }
-                } else {
-                    state.t2Energy += CONFIG.t2BaseRecharge * rechargeMult;
                 }
-            } else {
-                state.t2IsWorking = false;
-            }
-            if (state.t2Energy > 100) state.t2Energy = 100;
+
+                if (w.energy > 100) w.energy = 100;
+            });
 
             if (state.mess < 0) state.mess = 0;
 
             return {
                 mess: state.mess,
-                t1Working: state.t1IsWorking,
-                t2Working: state.t2IsWorking,
-                t2Mode: state.t2Mode,
+                w1Working: state.workers[0].isWorking,
+                w1Color: state.workers[0].specs ? state.workers[0].specs.color : '#000',
+                w2Working: state.workers[1].isWorking,
+                w2Color: state.workers[1].specs ? state.workers[1].specs.color : '#000',
                 hour: hourInt,
                 minute: minute,
                 dayIndex: dayIndex
             };
         }
 
+        // --- DRAWING ---
         function updateUI() {
             const current = state.history[state.history.length - 1];
             if (!current) return;
 
-            // Update Text Stats
-            document.getElementById('mess-display').innerText = `Mess: ${Math.round(state.mess)}%`;
+            document.getElementById('mess-display').innerText = `${Math.round(state.mess)}%`;
             document.getElementById('time-display').innerText = `Day ${current.dayIndex} ${current.hour.toString().padStart(2,0)}:${current.minute.toString().padStart(2,0)}`;
 
-            // Update Status Text
-            const t1Label = document.getElementById('status-t1');
-            if (state.t1Burnout) t1Label.innerText = "BURNOUT (Recovering)";
-            else if (state.t1IsWorking) t1Label.innerText = `WORKING (${Math.round(state.t1Energy)}% Energy)`;
-            else t1Label.innerText = `Recharging (${Math.round(state.t1Energy)}%)`;
+            const updateStatus = (id, worker) => {
+                const el = document.getElementById(id);
+                if (worker.type === 'none') { el.innerText = "Empty"; return; }
+                const e = Math.round(worker.energy);
+                let txt = `${worker.statusMode.toUpperCase()}`;
+                if(worker.isWorking) txt = "WORKING";
+                el.innerText = `${txt} (${e}%)`;
+            };
 
-            const t2Label = document.getElementById('status-t2');
-            if (state.t2IsWorking) t2Label.innerText = `${state.t2Mode === 'crisis' ? 'CRISIS MODE' : 'INSPIRED'} (${Math.round(state.t2Energy)}% Energy)`;
-            else t2Label.innerText = `Dormant (${Math.round(state.t2Energy)}%)`;
+            updateStatus('status-w1', state.workers[0]);
+            updateStatus('status-w2', state.workers[1]);
         }
 
         function draw() {
+            // Ensure canvas fits screen (important for mobile rotations)
             if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-                state.maxHistory = window.innerWidth; 
+                state.maxHistory = window.innerWidth + 200; 
             }
 
-            // Clear White
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (state.history.length < 2) return;
 
-            const graphHeight = canvas.height * 0.6; 
-            const graphBottom = canvas.height * 0.8; 
+            // Stats overlay height protection
+            const statsHeight = 60; 
+            const controlsHeight = document.getElementById('controls').offsetHeight;
+
+            // Graph Area
+            const graphTop = controlsHeight + 20;
+            const graphBottom = canvas.height - statsHeight - 20;
+            const graphHeight = graphBottom - graphTop;
             const yScale = graphHeight / 100;
 
             let startIndex = 0;
@@ -350,21 +400,20 @@
                 startIndex = state.history.length - canvas.width;
             }
 
-            // --- Draw Threshold (Subtle Grey Dashed) ---
-            const thresholdY = graphBottom - (CONFIG.t2TriggerCrisis * yScale);
+            // Threshold
+            const thresholdY = graphBottom - (80 * yScale);
             ctx.beginPath();
-            ctx.strokeStyle = "#e0e0e0";
+            ctx.strokeStyle = "#eee";
             ctx.setLineDash([5, 5]);
             ctx.moveTo(0, thresholdY);
             ctx.lineTo(canvas.width, thresholdY);
             ctx.stroke();
 
-            // --- Draw The Main Line (Black) ---
+            // Main Line
             ctx.setLineDash([]);
             ctx.lineWidth = 1.5;
-            ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = "#000";
             ctx.beginPath();
-            
             for (let i = startIndex; i < state.history.length; i++) {
                 const h = state.history[i];
                 const x = i - startIndex;
@@ -374,22 +423,41 @@
             }
             ctx.stroke();
 
-            // --- Draw Worker Overlay (Colored Segments) ---
-            // To make it minimalist, we draw over the black line with color only where working
+            // Worker Colors
             for (let i = startIndex; i < state.history.length; i++) {
                 const h = state.history[i];
                 const x = i - startIndex;
                 const y = graphBottom - (h.mess * yScale);
 
-                if (h.t1Working) {
-                    ctx.fillStyle = "#0000cc"; // Deep Blue
-                    ctx.fillRect(x, y - 2, 2, 4); // Small thick mark
+                if (h.w1Working) {
+                    ctx.fillStyle = h.w1Color; 
+                    ctx.fillRect(x, y - 3, 2, 6); 
                 }
-                if (h.t2Working) {
-                    ctx.fillStyle = "#cc4400"; // Deep Orange
-                    ctx.fillRect(x, y - 3, 2, 6); // Slightly larger mark
+                if (h.w2Working) {
+                    ctx.fillStyle = h.w2Color;
+                    ctx.fillRect(x, y - 5, 2, 6); 
                 }
             }
+        }
+
+        // --- ACTIONS ---
+        // The key fix: This function swaps the worker in-place without resetting history
+        function updateWorkerType(index, typeStr) {
+            state.workers[index] = createWorker(typeStr);
+        }
+
+        function resetSim() {
+            state.mess = 10;
+            state.history = [];
+            state.workers = [
+                createWorker(document.getElementById('w1-select').value),
+                createWorker(document.getElementById('w2-select').value)
+            ];
+            warmUp();
+        }
+
+        function warmUp() {
+            for(let i=0; i<1500; i++) state.history.push(simulationStep());
         }
 
         function loop() {
@@ -400,21 +468,9 @@
             requestAnimationFrame(loop);
         }
 
-        function warmUp() {
-            for(let i=0; i<1500; i++) state.history.push(simulationStep());
-        }
-
-        function resetSim() {
-            state.mess = 10;
-            state.history = [];
-            state.t1Energy = 80;
-            state.t2Energy = 50;
-            warmUp();
-        }
-
-        // Init Events
-        document.getElementById('toggle-t1').addEventListener('change', e => state.t1Active = e.target.checked);
-        document.getElementById('toggle-t2').addEventListener('change', e => state.t2Active = e.target.checked);
+        // Listeners
+        document.getElementById('w1-select').addEventListener('change', e => updateWorkerType(0, e.target.value));
+        document.getElementById('w2-select').addEventListener('change', e => updateWorkerType(1, e.target.value));
         document.getElementById('btn-chaos').addEventListener('click', () => state.mess += 20);
         document.getElementById('btn-reset').addEventListener('click', resetSim);
         document.getElementById('cost-slider').addEventListener('input', e => {
@@ -422,9 +478,11 @@
             document.getElementById('cost-val').innerText = state.energyCostMultiplier.toFixed(1) + "x";
         });
 
-        // Run
+        // Start
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        // Init workers first
+        state.workers = [createWorker('t1'), createWorker('t2')];
         warmUp();
         loop();
 
