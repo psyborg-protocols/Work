@@ -1,13 +1,30 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-// --- PHYSICS ENGINE (Runge-Kutta 4) ---
+// --- HOOKS ---
+const useDimensions = (ref) => {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (!entries || entries.length === 0) return;
+      const { width, height } = entries[0].contentRect;
+      setDimensions({ width, height });
+    });
+    resizeObserver.observe(ref.current);
+    return () => resizeObserver.disconnect();
+  }, [ref]);
+
+  return dimensions;
+};
+
 
 /**
  * Calculates the derivatives for the system based on the current state and parameters.
  */
 const getDerivatives = (t, state, params) => {
   const { O, E } = state; // O = Order, E = Energy
-  const { P, delta, lambda, eta, r, gamma, useBurnout } = params;
+  const { P, delta, lambda, eta, r, gamma } = params;
 
   const mess = P - O;
 
@@ -15,9 +32,9 @@ const getDerivatives = (t, state, params) => {
   let workRate = lambda * mess;
 
   // Burnout Logic: STRICT ENFORCEMENT
-  // If enabled, and energy is depleted (or very close to it), the worker cannot work.
+  // If energy is depleted (or very close to it), the worker cannot work.
   // We use a small epsilon to catch floating point near-zero values.
-  if (useBurnout && E <= 0.01) {
+  if (E <= 0.01) {
     workRate = 0;
   }
 
@@ -32,7 +49,7 @@ const getDerivatives = (t, state, params) => {
   // HARD FLOOR LOGIC:
   // If Energy is at 0 and the net change is negative (trying to go lower), force dE/dt to 0.
   // This prevents the "Success Feedback" (which can be negative if order is decaying) from driving E below 0.
-  if (useBurnout && E <= 0.01 && dE_dt < 0) {
+  if (E <= 0.01 && dE_dt < 0) {
     dE_dt = 0;
   }
 
@@ -66,7 +83,7 @@ const rk4Step = (state, dt, params) => {
   let nextE = E + (dt / 6) * (k1.dE + 2 * k2.dE + 2 * k3.dE + k4.dE);
 
   // FINAL SAFETY CLAMP: Ensure integrator never outputs negative energy
-  if (params.useBurnout && nextE < 0) {
+  if (nextE < 0) {
     nextE = 0;
   }
 
@@ -80,7 +97,7 @@ const rk4Step = (state, dt, params) => {
 // --- VISUALIZATION COMPONENTS ---
 
 const LineChart = ({ data, width, height, maxTime }) => {
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0 || width === 0 || height === 0) return null;
 
   // Scales
   const padding = 20;
@@ -127,12 +144,14 @@ const LineChart = ({ data, width, height, maxTime }) => {
   );
 };
 
-const PhasePortrait = ({ currentO, currentE, params, width, height }) => {
-  const canvasRef = useRef(null);
+const PhasePortrait = ({ currentO, currentE, history, params, width, height }) => {
+  const bgCanvasRef = useRef(null);
+  const fgCanvasRef = useRef(null);
 
+  // Buffer Vector Field (Background)
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const canvas = bgCanvasRef.current;
+    if (!canvas || width === 0 || height === 0) return;
     const ctx = canvas.getContext('2d');
 
     // Clear
@@ -142,7 +161,6 @@ const PhasePortrait = ({ currentO, currentE, params, width, height }) => {
     // Scales
     const minO = 0, maxO = 110;
     const minE = -20, maxE = 120;
-
     const toScreenX = (o) => (o - minO) / (maxO - minO) * width;
     const toScreenY = (e) => height - (e - minE) / (maxE - minE) * height;
 
@@ -153,32 +171,59 @@ const PhasePortrait = ({ currentO, currentE, params, width, height }) => {
 
     for (let o = minO; o < maxO; o += (maxO - minO) / steps) {
       for (let e = minE; e < maxE; e += (maxE - minE) / steps) {
-        // Calculate derivatives at this point
         const derivs = getDerivatives(0, { O: o, E: e }, params);
         const len = Math.sqrt(derivs.dO ** 2 + derivs.dE ** 2);
 
-        // Normalize for visual consistency
-        const scale = 15; // Arrow length
+        const scale = 15;
         const dx = (derivs.dO / (len + 0.1)) * scale;
-        const dy = (derivs.dE / (len + 0.1)) * scale; // Invert Y for screen coords logic
+        const dy = (derivs.dE / (len + 0.1)) * scale;
 
         const x = toScreenX(o);
         const y = toScreenY(e);
 
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x + dx, y - dy); // dy is subtracted because screen Y is inverted
+        ctx.lineTo(x + dx, y - dy);
         ctx.stroke();
 
-        // Arrowhead
         ctx.fillStyle = '#475569';
         ctx.beginPath();
         ctx.arc(x + dx, y - dy, 1, 0, Math.PI * 2);
         ctx.fill();
       }
     }
+  }, [params, width, height]);
 
-    // Draw Current State Point
+  // Draw Dynamic Trace & Point (Foreground)
+  useEffect(() => {
+    const canvas = fgCanvasRef.current;
+    if (!canvas || width === 0 || height === 0) return;
+    const ctx = canvas.getContext('2d');
+
+    // Clear Foreground
+    ctx.clearRect(0, 0, width, height);
+
+    const minO = 0, maxO = 110;
+    const minE = -20, maxE = 120;
+    const toScreenX = (o) => (o - minO) / (maxO - minO) * width;
+    const toScreenY = (e) => height - (e - minE) / (maxE - minE) * height;
+
+    // Draw Trace
+    if (history && history.length > 2) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#f59e0b'; // Amber-500
+      ctx.lineWidth = 2;
+      const slice = history.slice(-100);
+      slice.forEach((pt, i) => {
+        const x = toScreenX(pt.O);
+        const y = toScreenY(pt.E);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    // Draw Point
     const cx = toScreenX(currentO);
     const cy = toScreenY(currentE);
 
@@ -197,14 +242,16 @@ const PhasePortrait = ({ currentO, currentE, params, width, height }) => {
     ctx.arc(cx, cy, 4, 0, Math.PI * 2);
     ctx.fill();
 
-  }, [currentO, currentE, params, width, height]);
+  }, [currentO, currentE, history, width, height]);
 
   return (
-    <div className="relative border border-slate-700 rounded-lg overflow-hidden shadow-inner">
-      <canvas ref={canvasRef} width={width} height={height} />
-      <div className="absolute top-2 left-2 text-xs text-slate-400 font-mono">
-        Y: Energy<br />X: Order
-      </div>
+    <div className="relative border border-slate-700 rounded-lg overflow-hidden shadow-inner w-full h-full" style={{ width: width || '100%', height: height || '100%' }}>
+      <canvas ref={bgCanvasRef} width={width} height={height} className="absolute inset-0" />
+      <canvas ref={fgCanvasRef} width={width} height={height} className="absolute inset-0" />
+
+      {/* Axes Labels */}
+      <div className="absolute bottom-1 right-2 text-xs text-slate-500 font-mono">Order →</div>
+      <div className="absolute top-2 left-2 text-xs text-slate-500 font-mono">↑ Energy</div>
     </div>
   );
 };
@@ -221,8 +268,10 @@ export default function App() {
     eta: 2.0,    // Efficiency (Energy -> Order conversion)
     r: 2.0,      // Recovery Rate (Rest)
     gamma: 0.7,  // Gratification (Energy back from progress)
-    useBurnout: true
   });
+
+  const chartContainerRef = useRef(null);
+  const chartDims = useDimensions(chartContainerRef);
 
   // Simulation State
   const [time, setTime] = useState(0);
@@ -318,7 +367,7 @@ export default function App() {
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Header & Controls */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
           <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 shadow-xl">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
               The Organizer
@@ -331,8 +380,8 @@ export default function App() {
               <button
                 onClick={() => setIsRunning(!isRunning)}
                 className={`flex-1 py-2 px-4 rounded font-bold transition-colors ${isRunning
-                    ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                   }`}
               >
                 {isRunning ? 'Pause' : 'Start Work'}
@@ -346,16 +395,6 @@ export default function App() {
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center gap-2 mb-4 p-2 bg-slate-800/50 rounded">
-                <input
-                  type="checkbox"
-                  id="burnout"
-                  checked={params.useBurnout}
-                  onChange={(e) => setParams({ ...params, useBurnout: e.target.checked })}
-                  className="w-4 h-4 accent-red-500"
-                />
-                <label htmlFor="burnout" className="text-sm font-medium text-slate-300">Enable Burnout (Stop if Energy ≤ 0)</label>
-              </div>
 
               <Slider
                 label="P (Potential)" val={params.P} min={50} max={200} step={10}
@@ -392,7 +431,7 @@ export default function App() {
         </div>
 
         {/* Visualizations */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
 
           {/* Main Time Series */}
           <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-xl">
@@ -400,8 +439,8 @@ export default function App() {
               <span>Timeline</span>
               <span className="text-xs font-normal text-slate-500 self-center">t = {time.toFixed(1)}</span>
             </h2>
-            <div className="w-full h-64">
-              <LineChart data={history} width={600} height={250} maxTime={time} />
+            <div ref={chartContainerRef} className="w-full h-64">
+              <LineChart data={history} width={chartDims.width} height={chartDims.height} maxTime={time} />
             </div>
           </div>
 
@@ -416,7 +455,7 @@ export default function App() {
               <div className={`bg-slate-800/50 p-4 rounded-lg border-l-4 transition-colors ${stateRef.current.E < 10 ? 'border-red-500 bg-red-900/10' : 'border-orange-500'}`}>
                 <div className="text-slate-400 text-xs uppercase tracking-wider">Current Energy</div>
                 <div className="text-3xl font-bold text-white">{stateRef.current.E.toFixed(1)}</div>
-                {stateRef.current.E <= 0 && params.useBurnout && (
+                {stateRef.current.E <= 0 && (
                   <div className="text-red-400 text-xs font-bold mt-1">⚠ EXHAUSTED</div>
                 )}
               </div>
@@ -433,6 +472,7 @@ export default function App() {
               <PhasePortrait
                 currentO={stateRef.current.O}
                 currentE={stateRef.current.E}
+                history={history}
                 params={params}
                 width={280}
                 height={200}
