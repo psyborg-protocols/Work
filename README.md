@@ -1,90 +1,137 @@
-The Organizer: System Dynamics Model
-====================================
+The Organizer: 3-DOF System Dynamics Model
+==========================================
 
-This project simulates a worker's struggle to organize a system against the natural forces of entropy. It uses a system of coupled Ordinary Differential Equations (ODEs) to model the interplay between **Order** ($O$) and the worker's **Energy** ($E$).
+This project simulates a worker's struggle not just against entropy, but against their own shifting standards. It uses a system of three coupled Ordinary Differential Equations (ODEs) to model the interplay between **Order** ($O$), **Energy** ($E$), and **Expectation** ($P$).
 
 The Mathematical Model
 ----------------------
 
-The system is defined by two primary variables that change over time ($t$):
+The system is defined by three primary variables that change over time ($t$):
 
 1.  $O(t)$: The current level of Organization (Order).
     
 2.  $E(t)$: The worker's current Energy.
     
+3.  $P(t)$: The current Level of Expectation (The Goalpost).
+    
 
-### 1\. The Dynamics of Order
+### 1\. The Dynamics of Order ($O$)
 
 Order is built by work and destroyed by entropy.
 
 $$\\frac{dO}{dt} = \\underbrace{\\eta \\cdot \\lambda (P - O)}\_{\\text{Work Done}} - \\underbrace{\\delta O}\_{\\text{Natural Decay}}$$
 
-*   **The Mess**: Defined as $P - O$ (Potential - Current Order).
+*   **The Mess**: Defined as $P - O$ (Expectation - Current Order).
     
-*   **Inspiration (**$\\lambda$**)**: The worker is driven by the mess. The messier it is, the harder they try to work.
+*   **Inspiration (**$\\lambda$**)**: The worker is driven by the gap between where they are and where they want to be.
     
-*   **Efficiency (**$\\eta$**)**: Converts the energy spent working into actual results.
+*   **Efficiency (**$\\eta$**)**: Converts energy spent working into actual results.
     
 *   **Entropy (**$\\delta$**)**: A constant percentage of the existing order decays every moment.
     
 
-### 2\. The Dynamics of Energy
+### 2\. The Dynamics of Expectation ($P$)
 
-Energy is a finite resource that is spent to work but regained through rest and the psychological reward of success.
+Expectations are not static. They are a moving target that reacts to your performance.
 
-$$\\frac{dE}{dt} = \\underbrace{r}\_{\\text{Rest}} - \\underbrace{\\lambda (P - O)}\_{\\text{Cost of Work}} + \\underbrace{\\gamma \\frac{dO}{dt}}\_{\\text{Success Feedback}}$$
+$$\\frac{dP}{dt} = \\begin{cases} \\alpha\_{up} \\cdot \\frac{dO}{dt} & \\text{if } \\frac{dO}{dt} > 0 \\text{ (Inflation)} \\\\ \\alpha\_{down} \\cdot \\frac{dO}{dt} & \\text{if } \\frac{dO}{dt} \\le 0 \\text{ (Stickiness)} \\end{cases}$$
 
-*   **Rest (**$r$**)**: A constant rate of recovery (e.g., sleeping, eating).
+*   **The Hedonic Treadmill (**$\\alpha\_{up}$**)**: When you make progress ($\\frac{dO}{dt} > 0$), your expectations rise immediately. If $\\alpha\_{up}$ is high, you never feel "done" because the goal moves as fast as you work.
     
-*   **Cost of Work**: The energy spent is proportional to the effort ($\\lambda(P-O)$).
+*   **Sticky Standards (**$\\alpha\_{down}$**)**: When you fail ($\\frac{dO}{dt} < 0$), your expectations lower, but usually much slower than they rose. This resistance to lowering standards causes "The Mess" ($P-O$) to grow uncontrollably during a crash.
     
-*   **Gratification (**$\\gamma$**)**: A feedback loop. If the worker sees Order increasing ($\\frac{dO}{dt} > 0$), they gain a burst of energy (dopamine/morale). If Order is falling despite their efforts, this term becomes negative, draining energy faster (discouragement).
+
+### 3\. The Dynamics of Energy ($E$)
+
+Energy is spent to work but regained through rest, gratification, and "hype."
+
+$$\\frac{dE}{dt} = \\underbrace{r}\_{\\text{Rest}} - \\underbrace{\\lambda (P - O)}\_{\\text{Cost of Work}} + \\underbrace{\\gamma \\frac{dO}{dt}}\_{\\text{Real Reward}} + \\underbrace{\\sigma \\frac{dP}{dt}}\_{\\text{False Energy}}$$
+
+*   **Cost of Work**: Energy is drained proportional to the effort managed.
+    
+*   **Real Reward (**$\\gamma$**)**: Energy gained from seeing actual Order increase.
+    
+*   **False Energy / Mania (**$\\sigma$**)**: Energy gained purely from the _feeling_ of raising standards. When expectations skyrocket ($\\frac{dP}{dt} > 0$), the worker gets a burst of manic energy. This creates a dangerous positive feedback loop where hype fuels more work, which raises expectations further, eventually leading to a crash when energy runs out.
     
 
 Variable Definitions
 --------------------
 
-| Symbol | Name | Description |
+Symbol
 
-| $P$ | Potential | The maximum theoretical level of order the system can hold. |
+Name
 
-| $O$ | Order | The current state of organization. $0 \\le O \\le P$. |
+Description
 
-| $E$ | Energy | The worker's fuel. If $E \\le 0$, work stops. |
+$O$
 
-| $\\delta$ | Decay (Delta) | The rate of natural entropy. Higher $\\delta$ means order falls apart faster. |
+**Order**
 
-| $\\lambda$ | Inspiration (Lambda) | Sensitivity to mess. High $\\lambda$ means the worker attacks mess aggressively. |
+The current state of organization.
 
-| $\\eta$ | Efficiency (Eta) | How effectively effort translates to order. |
+$E$
 
-| $r$ | Recovery (r) | Base energy regeneration rate. |
+**Energy**
 
-| $\\gamma$ | Gratification (Gamma) | The strength of the "flow state." High $\\gamma$ allows work to sustain itself. |
+The worker's fuel. If $E \\le 0$, work stops.
+
+$P$
+
+**Expectation**
+
+The dynamic goal. No longer a fixed constant.
+
+$\\delta$
+
+Decay
+
+Rate of natural entropy.
+
+$\\lambda$
+
+Inspiration
+
+Sensitivity to the mess ($P-O$).
+
+$\\eta$
+
+Efficiency
+
+How effectively effort translates to order.
+
+$\\alpha\_{up}$
+
+Inflation
+
+How fast expectations rise when succeeding.
+
+$\\alpha\_{down}$
+
+Stickiness
+
+How slow expectations drop when failing.
+
+$\\sigma$
+
+Sigma (Mania)
+
+"False energy" gained from rising expectations.
 
 System Behaviors
 ----------------
 
-### The Burnout Condition
+### The Moving Goalpost
 
-The simulation strictly enforces an energy floor. The equations are modified by a condition:
+In this 3-DOF system, reaching "perfection" ($O = P$) is nearly impossible if $\\alpha\_{up}$ is high. As you approach the goal, the goal moves away. This simulates the psychological phenomenon where high-performers constantly normalize their success and feel inadequate despite objective progress.
 
-$$\\text{If } E(t) \\le 0, \\text{ then Work} = 0$$
+### The Manic Crash
 
-When this happens, the "Cost of Work" drops to zero, but the "Work Done" also drops to zero. The system acts purely under the influence of **Rest** ($r$) and **Decay** ($-\\delta O$) until energy recovers.
+The term $\\sigma \\frac{dP}{dt}$ allows for "Mania."
 
-### The Equilibrium (Steady State)
-
-Without burnout, the system naturally tends toward a state where the work done exactly matches the rate of decay.
-
-$$O\_{steady} = \\frac{\\eta \\lambda P}{\\eta \\lambda + \\delta}$$
-
-Notice that if $\\delta > 0$ (entropy exists), $O\_{steady}$ will always be less than $P$. Perfection is mathematically impossible in this model.
-
-### The Flow State
-
-The term $\\gamma \\frac{dO}{dt}$ creates a powerful feedback loop.
-
-*   **Positive Feedback:** If the worker is highly efficient ($\\eta$) and gratification ($\\gamma$) is high, the act of cleaning generates enough energy to offset the cost of the work. This is the "Flow State."
+1.  **The Boom**: You work hard $\\to$ Order rises $\\to$ Expectations rise $\\to$ You get "False Energy" ($\\sigma$) $\\to$ You work even harder.
     
-*   **Negative Feedback:** If entropy ($\\delta$) is too high, $\\frac{dO}{dt}$ becomes negative. The worker loses energy _because_ they are failing. This leads to a rapid crash.
+2.  **The Peak**: Eventually, entropy ($\\delta O$) or the sheer size of the mess ($P-O$) drains energy faster than hype can replenish it.
+    
+3.  **The Crash**: Energy hits 0. Work stops. Order begins to decay ($\\frac{dO}{dt} < 0$).
+    
+4.  **The Depression**: Because $\\alpha\_{down}$ is small, expectations stay high while Order collapses. The "Mess" ($P-O$) becomes overwhelming, but you have no energy to tackle it. Expectations eventually drift down, but painfully slowly.
