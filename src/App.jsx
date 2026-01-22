@@ -109,7 +109,7 @@ const rk4Step = (state, dt, params) => {
 
 // --- VISUALIZATION COMPONENTS ---
 
-constHzLineChart = ({ data, width, height, maxTime }) => {
+const HzLineChart = ({ data, width, height, maxTime }) => {
   if (!data || data.length === 0 || width === 0 || height === 0) return null;
 
   const padding = 20;
